@@ -1,0 +1,59 @@
+version: '2'
+services:
+  vwxyt_php:
+    container_name: vwxyt_php
+    build:
+      context: ./
+      dockerfile: vwxyt_php.dockerfile
+    working_dir: /var/www
+    volumes:
+      - ../../Sites/VisionWorx/dev/vwx-yt:/var/www
+      - ./php.ini:/usr/local/etc/php/php.ini
+      - ./vhost.conf:/etc/nginx/conf.d/default.conf
+    environment:
+      XDEBUG_CONFIG: "remote_host=192.168.0.123"
+      PHP_IDE_CONFIG: "serverName=vwxyt.app"
+    links:
+      - vwxyt_redis
+      - vwxyt_mariadb
+
+  vwxyt_nginx:
+    container_name: vwxyt_nginx
+    build:
+      context: ./
+      dockerfile: vwxyt_nginx.dockerfile
+    working_dir: /var/www
+    ports:
+      - "80:80"
+    volumes_from:
+      - vwxyt_php
+    links:
+      - vwxyt_redis
+      - vwxyt_mariadb
+  
+  vwxyt_mariadb:
+    image: mariadb
+    container_name: vwxyt_mariadb
+    volumes:
+      - vwxyt_dbdata:/var/lib/mariadb
+    links:
+      - vwxyt_redis
+    environment:
+      - MYSQL_DATABASE=vwxyt_app
+      - MYSQL_USER=vwxyt_app
+      - MYSQL_PASSWORD=vwxyt_secret
+      - MYSQL_ROOT_PASSWORD=vwxyt_root_secret
+    ports:
+        - "3306:3306"
+
+  vwxyt_redis:
+    image: redis
+    container_name: vwxyt_redis
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+    - ./vwxyt_redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+        - "6379:6379"
+
+volumes:
+  vwxyt_dbdata:

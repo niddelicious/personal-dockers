@@ -1,0 +1,59 @@
+version: '2'
+services:
+  nine_php:
+    container_name: nine_php
+    build:
+      context: ./
+      dockerfile: nine_php.dockerfile
+    working_dir: /var/www
+    volumes:
+      - ../../Sites/VisionWorx/dev/nine.app:/var/www
+      - ./php.ini:/usr/local/etc/php/php.ini
+      - ./vhost.conf:/etc/nginx/conf.d/default.conf
+    environment:
+      XDEBUG_CONFIG: "remote_host=192.168.0.123"
+      PHP_IDE_CONFIG: "serverName=nine.app"
+    links:
+      - nine_redis
+      - nine_mariadb
+
+  nine_nginx:
+    container_name: nine_nginx
+    build:
+      context: ./
+      dockerfile: nine_nginx.dockerfile
+    working_dir: /var/www
+    ports:
+      - "80:80"
+    volumes_from:
+      - nine_php
+    links:
+      - nine_redis
+      - nine_mariadb
+  
+  nine_mariadb:
+    image: mariadb
+    container_name: nine_mariadb
+    volumes:
+      - nine_dbdata:/var/lib/mariadb
+    links:
+      - nine_redis
+    environment:
+      - MYSQL_DATABASE=nine_app
+      - MYSQL_USER=nine_app
+      - MYSQL_PASSWORD=nine_secret
+      - MYSQL_ROOT_PASSWORD=nine_root_secret
+    ports:
+        - "3306:3306"
+
+  nine_redis:
+    image: redis
+    container_name: nine_redis
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+    - ./nine_redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+        - "6379:6379"
+
+volumes:
+  nine_dbdata:

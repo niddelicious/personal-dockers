@@ -1,0 +1,59 @@
+version: '2'
+services:
+  laravel:
+    container_name: laravel
+    build:
+      context: ./
+      dockerfile: laravel.dockerfile
+    working_dir: /var/www
+    volumes:
+      - ../../Sites/Elicit/laravel.app:/var/www
+      - ./php.ini:/usr/local/etc/php/php.ini
+      - ./vhost.conf:/etc/nginx/conf.d/default.conf
+    links:
+      - redis
+    environment:
+      XDEBUG_CONFIG: "remote_host=192.168.0.123"
+      PHP_IDE_CONFIG: "serverName=laravel.app"
+
+  nginx:
+    container_name: nginx
+    build:
+      context: ./
+      dockerfile: nginx.dockerfile
+    working_dir: /var/www
+    ports:
+      - "80:80"
+    volumes_from:
+      - laravel
+    links:
+      - laravel
+      - redis
+  
+  mariadb:
+    image: mariadb:10.3
+    container_name: mariadb
+    volumes:
+      - dbdata:/var/lib/mariadb
+    environment:
+      - MYSQL_DATABASE=laravel
+      - MYSQL_USER=laravel
+      - MYSQL_PASSWORD=secret
+      - MYSQL_ROOT_PASSWORD=root-secret
+    ports:
+        - "3306:3306"
+
+  redis:
+    image: redis
+    container_name: redis
+    build:
+      context: ./
+      dockerfile: redis.dockerfile
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+      - ./redis:/var/lib/redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  dbdata:

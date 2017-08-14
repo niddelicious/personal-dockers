@@ -1,0 +1,47 @@
+version: '2'
+services:
+  visionworx:
+    container_name: visionworx
+    build:
+      context: ./
+      dockerfile: visionworx.dockerfile
+    working_dir: /var/www
+    volumes:
+      - ../../Sites/VisionWorx/dev/visionworx.se:/var/www
+      - ./php.ini:/usr/local/etc/php/php.ini
+      - ./vhost.conf:/etc/nginx/conf.d/default.conf
+    environment:
+      XDEBUG_CONFIG: "remote_host=192.168.0.123"
+      PHP_IDE_CONFIG: "serverName=visionworx.dev"
+      WORDPRESS_DB_PASSWORD: secret
+
+  nginx:
+    container_name: nginx
+    build:
+      context: ./
+      dockerfile: nginx.dockerfile
+    working_dir: /var/www
+    ports:
+      - "80:80"
+    volumes_from:
+      - visionworx
+    links:
+      - visionworx
+  
+  mariadb:
+    image: mariadb
+    container_name: mariadb
+    volumes:
+      - dbdata:/var/lib/mariadb
+    links:
+      - visionworx
+    environment:
+      - MYSQL_DATABASE=vwx
+      - MYSQL_USER=vwx
+      - MYSQL_PASSWORD=secret
+      - MYSQL_ROOT_PASSWORD=secret
+    ports:
+        - "3306:3306"
+
+volumes:
+  dbdata:

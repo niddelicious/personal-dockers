@@ -1,0 +1,59 @@
+version: '2'
+services:
+  orange_php:
+    container_name: orange_php
+    build:
+      context: ./
+      dockerfile: orange_php.dockerfile
+    working_dir: /var/www
+    volumes:
+      - ../../Sites/VisionWorx/dev/orange.app:/var/www
+      - ./php.ini:/usr/local/etc/php/php.ini
+      - ./vhost.conf:/etc/nginx/conf.d/default.conf
+    environment:
+      XDEBUG_CONFIG: "remote_host=192.168.0.123"
+      PHP_IDE_CONFIG: "serverName=orange.app"
+    links:
+      - orange_redis
+      - orange_mariadb
+
+  orange_nginx:
+    container_name: orange_nginx
+    build:
+      context: ./
+      dockerfile: orange_nginx.dockerfile
+    working_dir: /var/www
+    ports:
+      - "80:80"
+    volumes_from:
+      - orange_php
+    links:
+      - orange_redis
+      - orange_mariadb
+  
+  orange_mariadb:
+    image: mariadb
+    container_name: orange_mariadb
+    volumes:
+      - orange_dbdata:/var/lib/mariadb
+    links:
+      - orange_redis
+    environment:
+      - MYSQL_DATABASE=orange_app
+      - MYSQL_USER=orange_app
+      - MYSQL_PASSWORD=orange_secret
+      - MYSQL_ROOT_PASSWORD=orange_root_secret
+    ports:
+        - "3306:3306"
+
+  orange_redis:
+    image: redis
+    container_name: orange_redis
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+    - ./orange_redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+        - "6379:6379"
+
+volumes:
+  orange_dbdata:
